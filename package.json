@@ -1,0 +1,14 @@
+{
+  "name": "SIPGateway",
+  "version": "1.0.0",
+  "author": "Essle Jaxcate <me@essle.ru> (http://essle.ru/)",
+  "private": true,
+  "license": "ISC",
+  "scripts": {},
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "dependencies": {
+    "ws": "^6.1.0"
+  }
+}
