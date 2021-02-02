@@ -3,106 +3,96 @@ const fs = require('fs');
 const https = require('https');
 const net = require('net');
 
-/*
- *	Configuration
- */
+module.exports = {
 
-const CONFIG_DEBUG = true;
-const CONFIG_LOCAL_HOST = 'localhost';
-const CONFIG_LOCAL_PORT = 1337;
-const CONFIG_DEFAULT_SIP_PORT = 5060;
-const CONFIG_SIP_TIMEOUT = 120;
-const CONFIG_SIP_MAX_LISTERNS = 1000;
-const CONFIG_SIP_SSL = true;
+	/**
+     * Listen gateway server
+	 *
+	 * @param {number} port
+	 * @param {Object} [config]
+	 * @param {number} [config.portSIP=5060]
+	 * @param {boolean} [config.ssl=false]
+	 * @param {string} [config.sslCert]
+	 * @param {string} [config.sslKey]
+	 * @param {number} [config.maxListeners=1000]
+	 * @param {number} [config.timeout=60000]
+	 * @param {function} [callback]
+	 *
+	 * @return {?WebSocket.Server}
+     */
+	listen(port, config = {}, callback) {
 
-/*
- * Creating local server
- */
+		config = {
+			portSIP: 5060,
+			ssl: false,
+			maxListeners: 1000,
+			timeout: 60000,
+			...config,
+		};
 
-let serverWebsocket = undefined;
-let serverHttps = undefined;
-
-const serverHandler = () => {
-	console.log('@ SIPGateway listening on ' + (CONFIG_SIP_SSL ? 'wss' : 'ws') + '://' + CONFIG_LOCAL_HOST + ':' + CONFIG_LOCAL_PORT);
-};
-
-if (CONFIG_SIP_SSL) {
-	// Creating HTTPS server for WSS
-	serverHttps = https.createServer({
-		cert: fs.readFileSync('./ssl/localhost.crt'),
-		key: fs.readFileSync('./ssl/localhost.key')
-	});
-	serverHttps.listen(CONFIG_LOCAL_PORT, serverHandler);
-}
-
-serverWebsocket = new WebSocket.Server({
-	server: CONFIG_SIP_SSL ? serverHttps : undefined,
-	host: CONFIG_SIP_SSL ? undefined : CONFIG_LOCAL_HOST,
-	port: CONFIG_SIP_SSL ? undefined : CONFIG_LOCAL_PORT,
-	handleProtocols: p => {
-		// Allow only SIP protocol
-		return (p.indexOf('sip') == -1) ? 'invalid_protocol' : 'sip';
-	}
-}, serverHandler); 
-
-serverWebsocket.on('connection', socket => {
-
-	let stream = undefined;
-
-	// Creating connection with SIP
-	const createStream = (host, port) => {
-
-		const s = net.connect(port || CONFIG_DEFAULT_SIP_PORT, host);
-
-		s.setTimeout(CONFIG_SIP_TIMEOUT * 1000); 
-		s.setEncoding('binary');
-		s.setMaxListeners(CONFIG_SIP_MAX_LISTERNS);
-
-		// Data from SIP to client
-		s.on('data', data => {
-
-			socket.send(data);
-
-			if (CONFIG_DEBUG) {
-				console.log('------------------------------');
-				console.log('---------- <<====== ----------');
-				console.log('------------------------------\n');
-				console.log(data);
+		const serverConfiguration = {};
+		if (config.ssl) {
+			if (config.sslCert && config.sslKey) {
+				// Creating HTTPS server for WSS
+				serverConfiguration.server = https.createServer({
+					cert: fs.readFileSync(config.sslCert),
+					key: fs.readFileSync(config.sslKey)
+				});
+				serverConfiguration.server.listen(port, callback);
+			} else {
+				console.error('Undefined path of SSL certificate');
+				return null;
 			}
+		} else {
+			serverConfiguration.port = port;
+		}
+
+		const server = new WebSocket.Server({
+			...serverConfiguration,
+			// Allow only SIP protocol
+			handleProtocols: (p) => (p.indexOf('sip') === -1) ? 'invalid_protocol' : 'sip',
+		}, callback);
+
+
+		// Creating connection with SIP
+		const createStream = (host) => {
+			const s = net.connect(config.portSIP, host);
+			s.setTimeout(config.timeout);
+			s.setEncoding('binary');
+			s.setMaxListeners(config.maxListeners);
+			// Data from SIP to client
+			s.on('data', (data) => {
+				socket.send(data);
+			});
+			return s;
+		};
+
+		server.on('connection', (socket) => {
+
+			let stream = undefined;
+
+			// Data from client to SIP
+			socket.on('message', (data) => {
+				if (!stream) {
+					// Get SIP host from request header
+					const target = data.split('\n')[0].split(' ')[1];
+					const delimiter = (target.indexOf('@') === -1) ? ':' : '@';
+					stream = createStream(target.split(delimiter)[1]);
+				}
+				stream.write(data, 'binary');
+			});
+
+			// Closing connection with SIP
+			socket.on('close', () => {
+				if (stream) {
+					stream.destroy();
+				}
+			});
 
 		});
 
-		return s;
+		return server;
 
-	};
-	
-	// Data from client to SIP
-	socket.on('message', data => {
+	},
 
-		if (!stream) {
-			// Get SIP host from request header
-			const target = data.split('\n')[0].split(' ')[1];
-			stream = createStream(target.split((target.indexOf('@') == -1) ? ':' : '@')[1]);
-		}
-
-		stream.write(data, 'binary');
-
-		if (CONFIG_DEBUG) {
-			console.log('------------------------------');
-			console.log('---------- ======>> ----------');
-			console.log('------------------------------\n');
-			console.log(data);
-		}
-
-	});
-	
-	// Closing connection with SIP
-	socket.on('close', data => {
-
-		if (stream) {
-			stream.destroy();
-		}
-
-	});
-
-});
+};

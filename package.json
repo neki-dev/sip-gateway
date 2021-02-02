@@ -1,12 +1,25 @@
 {
-  "name": "SIPGateway",
+  "name": "sip-gateway",
+  "description": "Simple gateway for SIP via WebSocket",
   "version": "1.0.0",
-  "author": "Essle Jaxcate <me@essle.ru> (http://essle.ru/)",
-  "private": true,
-  "license": "ISC",
-  "scripts": {},
-  "engines": {
-    "node": ">=0.10.0"
+  "author": {
+    "name": "Essle Jaxcate",
+    "email": "me@essle.ru",
+    "url": "https://essle.ru/"
+  },
+  "keywords": [
+    "sip",
+    "gateway",
+    "ws",
+    "websocket",
+    "server"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "homepage": "https://github.com/essle/sip-gateway#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/essle/sip-gateway.git"
   },
   "dependencies": {
     "ws": "^6.1.0"
