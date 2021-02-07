@@ -6,7 +6,7 @@
 npm i sip-gateway
 ```
 
-* ###Configuration
+* ### Configuration
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | portSIP | number | 5060 | Port of SIP server |
