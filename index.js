@@ -16,6 +16,8 @@ module.exports = {
      * @param {string} [config.sslKey]
      * @param {number} [config.maxListeners=1000]
      * @param {number} [config.timeout=60000]
+     * @param {function} [config.onConnect]
+     * @param {function} [config.onDisconnect]
      * @param {function} [config.onSend]
      * @param {function} [config.onReceive]
      * @param {function} [callback]
@@ -64,7 +66,7 @@ module.exports = {
             // Data from SIP to client
             s.on('data', (data) => {
                 if (config.onSend) {
-                    const res = config.onSend(data);
+                    const res = config.onSend(data, s);
                     if (res === false) {
                         return;
                     }
@@ -75,6 +77,10 @@ module.exports = {
         };
 
         server.on('connection', (socket) => {
+
+            if (config.onConnect) {
+                config.onConnect(socket);
+            }
 
             let stream = undefined;
 
@@ -88,7 +94,7 @@ module.exports = {
                     stream = createStream(socket, host);
                 }
                 if (config.onReceive) {
-                    const res = config.onReceive(data);
+                    const res = config.onReceive(data, stream);
                     if (res === false) {
                         return;
                     }
@@ -98,6 +104,9 @@ module.exports = {
 
             // Closing connection with SIP
             socket.on('close', () => {
+                if (config.onDisconnect) {
+                    config.onDisconnect(socket);
+                }
                 if (stream) {
                     stream.destroy();
                 }

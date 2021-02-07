@@ -1,12 +1,12 @@
 ## Simple gateway for SIP via WebSocket
 .
-## Install
+* ### Install
 
 ```sh
 npm i sip-gateway
 ```
 
-## Configuration
+* ###Configuration
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | portSIP | number | 5060 | Port of SIP server |
@@ -15,16 +15,41 @@ npm i sip-gateway
 | sslKey | string | - | Path to .key |
 | timeout | number | 60000 | Connection timeout |
 | maxListeners | number | 1000 | Max listeners |
-| onReceive | function | - | Callback for receive event |
+| onConnect | function | - | Callback for connect event |
+| onDisconnect | function | - | Callback for disconnect event |
 | onSend | function | - | Callback for send event |
+| onReceive | function | - | Callback for receive event |
 
-## Usage
+* ### Usage
 
 ```js
 const sipGateway = require('sip-gateway');
 sipGateway.listen(3000, {
     /* configuration */ 
 }, () => {
-    console.log('Gateway server listening on :3000');
+    /* callback */
+});
+```
+
+* ### Example
+
+```js
+const sipGateway = require('sip-gateway');
+sipGateway.listen(3000, {
+    portSIP: 5061,
+    ssl: true,
+    sslCert: '/root/ssl/test.cert',
+    sslKey: '/root/ssl/test.key',
+    onReceive: (data, stream) => {
+        if (!someFunctionForCheckData(data)) {
+            // Return false for stop receive
+            return false;
+        }       
+    },
+    onConnect: (socket) => {
+        // ...
+    },
+}, () => {
+    console.log('Listening on wss://127.0.0.1:3000');
 });
 ```
