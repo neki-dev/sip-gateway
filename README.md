@@ -1,12 +1,22 @@
-# sip-gateway.js
-> Simple gateway for SIP via WebSocket
-
+## Simple gateway for SIP via WebSocket
+.
 ## Install
-
 
 ```sh
 npm i sip-gateway
 ```
+
+## Configuration
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| portSIP | number | 5060 | Port of SIP server |
+| ssl | boolean | false | Using SSL |
+| sslCert | string | - | Path to .srt |
+| sslKey | string | - | Path to .key |
+| timeout | number | 60000 | Connection timeout |
+| maxListeners | number | 1000 | Max listeners |
+| onReceive | function | - | Callback for receive event |
+| onSend | function | - | Callback for send event |
 
 ## Usage
 
@@ -18,13 +28,3 @@ sipGateway.listen(3000, {
     console.log('Gateway server listening on :3000');
 });
 ```
-
-## Configuration
-| Param | Type | Default |
-| --- | --- | --- |
-| portSIP | int | 5060 |
-| ssl | boolean | false |
-| sslCert | string | - |
-| sslKey | string | - |
-| maxListeners | int | 1000 |
-| timeout | int | 60000 |
