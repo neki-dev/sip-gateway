@@ -1,12 +1,7 @@
 {
   "name": "sip-gateway",
   "description": "Simple gateway for SIP via WebSocket",
-  "version": "1.0.2",
-  "author": {
-    "name": "Essle Jaxcate",
-    "email": "me@essle.ru",
-    "url": "https://essle.ru/"
-  },
+  "version": "2.0.0",
   "keywords": [
     "sip",
     "gateway",
@@ -15,13 +10,24 @@
     "server"
   ],
   "license": "MIT",
-  "main": "index.js",
-  "homepage": "https://github.com/essle/sip-gateway#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/essle/sip-gateway.git"
+  "author": {
+    "name": "Nikita Galadiy",
+    "email": "dev@neki.guru",
+    "url": "https://neki.guru/"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "lint": "eslint \"src/**/*.js\" --fix"
   },
   "dependencies": {
     "ws": "^6.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.24.0",
+    "eslint-config-neki": "^1.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neki-dev/sip-gateway.git"
   }
 }

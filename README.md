@@ -9,25 +9,30 @@ npm i sip-gateway
 * ### Configuration
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
+| port | number | - | Port of gateway server |
 | portSIP | number | 5060 | Port of SIP server |
-| ssl | boolean | false | Using SSL |
-| sslCert | string | - | Path to .srt |
-| sslKey | string | - | Path to .key |
+| ssl | Object | - | Using SSL |
+| ssl.cert | string | - | Path to .crt file |
+| ssl.key | string | - | Path to .key file |
 | timeout | number | 60000 | Connection timeout |
-| maxListeners | number | 1000 | Max listeners |
-| onConnect | function | - | Callback for connect event |
-| onDisconnect | function | - | Callback for disconnect event |
+| maxListeners | number | - | Max listeners |
+| onListen | function | - | Callback for listen event |
 | onSend | function | - | Callback for send event |
 | onReceive | function | - | Callback for receive event |
+
+* ### Events
+| Name | Arguments| Description |
+| --- | --- | --- |
+| connection | socket | New socket connection |
+| disconnect | socket | Socket disconnection |
+| transferData | data | Transfer stream data |
 
 * ### Usage
 
 ```js
 const sipGateway = require('sip-gateway');
-sipGateway.listen(3000, {
-    /* configuration */ 
-}, () => {
-    /* callback */
+sipGateway.start({
+    // Configuration 
 });
 ```
 
@@ -35,21 +40,40 @@ sipGateway.listen(3000, {
 
 ```js
 const sipGateway = require('sip-gateway');
-sipGateway.listen(3000, {
+sipGateway.listen({
+    port: 3000,
     portSIP: 5061,
-    ssl: true,
-    sslCert: '/root/ssl/test.cert',
-    sslKey: '/root/ssl/test.key',
-    onReceive: (data, stream) => {
+    ssl: { 
+        cert: '/root/ssl/test.crt',
+        key: '/root/ssl/test.key',
+    },
+    onSend: (data, stream) => {
         if (!someFunctionForCheckData(data)) {
-            // Return false for stop receive
+            // Return false for stop send (if needed)
             return false;
         }       
     },
-    onConnect: (socket) => {
-        // ...
+    onReceive: (data, stream) => {
+        if (!someFunctionForCheckData(data)) {
+            // Return false for stop receive (if needed)
+            return false;
+        }       
     },
-}, () => {
-    console.log('Listening on wss://127.0.0.1:3000');
+    onListen: (socket) => {
+        console.log('Listening on wss://127.0.0.1:3000');
+    },
+});
+
+sipGateway.on('connection', (socket) => {
+    console.log('Join', socket);
+});
+
+sipGateway.on('disconnect', (socket) => {
+    console.log('Leave', socket);
+});
+
+sipGateway.on('transferData', (data) => {
+    // Event after onReceive callback
+    console.log('Transfer', data);
 });
 ```
