@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const fs = require('fs');
+const http = require('http');
 const https = require('https');
 const net = require('net');
 
@@ -44,11 +45,39 @@ function createStream(socket, {
 }
 
 /**
+ * Get host from SIP message
+ *
+ * @param {string} data
+ *
+ * @returns {string}
+ */
+function parseHost(data) {
+  const meta = data.split('\n')[0];
+  const target = meta.split(' ')[1];
+  const host = target.split(/(:|@)/)[1];
+
+  return host;
+}
+
+/**
+ * Verify SIP protocol
+ *
+ * @param {string} protocol
+ *
+ * @returns {string}
+ */
+function handleProtocols(protocol) {
+  return (protocol.indexOf('sip') === -1) ? 'invalid_protocol' : 'sip';
+}
+
+/**
  * Start gateway server
  *
  * @param {Object} params
  * @param {number} params.port
+ * @param {string} [params.host]
  * @param {number} [params.portSIP=5060]
+ * @param {string} [params.hostSIP]
  * @param {number} [params.timeout=60000]
  * @param {number} [params.maxListeners]
  * @param {Function} [params.onListen]
@@ -61,39 +90,40 @@ function createStream(socket, {
  * @returns {WebSocket.Server}
  */
 module.exports = function start({
-  port, portSIP = 5060, maxListeners, timeout = 60000, ssl, onListen, onSend, onReceive,
+  port, host,
+  portSIP = 5060, hostSIP,
+  maxListeners, timeout = 60000, ssl,
+  onListen, onSend, onReceive,
 }) {
-  const serverConfiguration = {};
+  const config = {
+    handleProtocols,
+  };
+
   if (ssl) {
-    serverConfiguration.server = https.createServer({
+    config.server = https.createServer({
       cert: fs.readFileSync(ssl.cert),
       key: fs.readFileSync(ssl.key),
     });
-    serverConfiguration.server.listen(port);
   } else {
-    serverConfiguration.port = port;
+    config.server = http.createServer();
   }
+  config.server.listen(port, host);
 
-  const server = new WebSocket.Server({
-    ...serverConfiguration,
-    handleProtocols: (p) => ((p.indexOf('sip') === -1) ? 'invalid_protocol' : 'sip'),
-  }, onListen);
-
-  server.on('connection', (socket) => {
+  const ws = new WebSocket.Server(config, onListen);
+  ws.on('connection', (socket) => {
     let stream;
 
     socket.on('message', (data) => {
       if (!stream) {
-        const target = data.split('\n')[0].split(' ')[1];
-        const delimiter = (target.indexOf('@') === -1) ? ':' : '@';
-        const host = target.split(delimiter)[1];
         stream = createStream(socket, {
-          host,
+          host: hostSIP || parseHost(data),
           port: portSIP,
           timeout,
           maxListeners,
           callback: onSend,
         });
+
+        ws.emit('streamCreate', stream);
       }
 
       if (onReceive) {
@@ -104,17 +134,20 @@ module.exports = function start({
       }
 
       stream.write(data, 'binary');
-      server.emit('transferData', data);
+      ws.emit('transferData', data, stream);
     });
 
     socket.on('close', () => {
-      server.emit('disconnect', socket);
+      ws.emit('disconnect', socket);
 
       if (stream) {
+        ws.emit('streamDestroy', stream);
         stream.destroy();
       }
     });
+
+    ws.emit('connect', socket);
   });
 
-  return server;
+  return ws;
 };

@@ -10,7 +10,9 @@ npm i sip-gateway
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | port | number | - | Port of gateway server |
+| host | string | (localhost) | Host of gateway server |
 | portSIP | number | 5060 | Port of SIP server |
+| hostSIP | string | (autodetect) | Host of SIP server |
 | ssl | Object | - | Using SSL |
 | ssl.cert | string | - | Path to .crt file |
 | ssl.key | string | - | Path to .key file |
@@ -21,11 +23,13 @@ npm i sip-gateway
 | onReceive | function | - | Callback for receive event |
 
 * ### Events
-| Name | Arguments| Description |
+| Name | Parameters | Description |
 | --- | --- | --- |
-| connection | socket | New socket connection |
+| connect | socket | New socket connection |
 | disconnect | socket | Socket disconnection |
-| transferData | data | Transfer stream data |
+| streamCreate | stream | Create stream |
+| streamDestroy | stream | Destroy stream |
+| transferData | data, stream | Transfer stream data |
 
 * ### Usage
 
@@ -64,16 +68,23 @@ sipGateway.listen({
     },
 });
 
-sipGateway.on('connection', (socket) => {
-    console.log('Join', socket);
+sipGateway.on('connect', (socket) => {
+    console.log('Add socket', socket);
 });
 
 sipGateway.on('disconnect', (socket) => {
-    console.log('Leave', socket);
+    console.log('Remove socket', socket);
 });
 
-sipGateway.on('transferData', (data) => {
-    // Event after onReceive callback
-    console.log('Transfer', data);
+sipGateway.on('streamCreate', (stream) => {
+    console.log('Add stream', stream);
+});
+
+sipGateway.on('streamDestroy', (stream) => {
+    console.log('Remove stream', stream);
+});
+
+sipGateway.on('transferData', (data, stream) => {
+    console.log('Message:', data);
 });
 ```
