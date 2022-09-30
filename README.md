@@ -44,7 +44,7 @@ sipGateway.start({
 
 ```js
 const sipGateway = require('sip-gateway');
-sipGateway.listen({
+sipGateway.start({
     port: 3000,
     portSIP: 5061,
     ssl: { 
@@ -67,7 +67,8 @@ sipGateway.listen({
         console.log('Listening on wss://127.0.0.1:3000');
     },
 });
-
+```
+```js
 sipGateway.on('connect', (socket) => {
     console.log('Add socket', socket);
 });
