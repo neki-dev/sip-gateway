@@ -1,5 +1,11 @@
-## Simple gateway for SIP via WebSocket
+## SIP gateway
+[![Npm package version](https://badgen.net/npm/v/sip-gateway)](https://npmjs.com/package/sip-gateway)
+[![Small size](https://badge-size.herokuapp.com/neki-dev/sip-gateway/master/src/index.js)](https://github.com/neki-dev/sip-gateway/blob/master/src/index.js)
+
+Simple gateway for SIP via WebSocket
+
 .
+
 * ### Install
 
 ```sh
