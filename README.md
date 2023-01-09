@@ -1,8 +1,8 @@
-## SIP gateway
+## 📟 SIP gateway
 [![Npm package version](https://badgen.net/npm/v/sip-gateway)](https://npmjs.com/package/sip-gateway)
-[![Small size](https://badge-size.herokuapp.com/neki-dev/sip-gateway/master/src/index.js)](https://github.com/neki-dev/sip-gateway/blob/master/src/index.js)
+[![Small size](https://img.badgesize.io/neki-dev/sip-gateway/master/src/index.js)](https://github.com/neki-dev/sip-gateway/blob/master/src/index.js)
 
-Simple gateway for SIP via WebSocket
+Simple gateway server for SIP via WebSocket
 
 .
 
