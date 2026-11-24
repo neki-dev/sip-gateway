@@ -47,14 +47,14 @@ function createStream(socket, {
 /**
  * Get host from SIP message
  *
- * @param {string} data
+ * @param {Buffer|string} data
  *
  * @returns {string}
  */
 function parseHost(data) {
-  const meta = data.split('\n')[0];
+  const meta = data.toString().split('\n')[0];
   const target = meta.split(' ')[1];
-  const host = target.split(/(:|@)/)[1];
+  const host = target.split(/[:@]/).pop();
 
   return host;
 }
