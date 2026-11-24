@@ -1,7 +1,7 @@
 {
   "name": "sip-gateway",
   "description": "Simple gateway server for SIP via WebSocket",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "keywords": [
     "sip",
     "gateway",

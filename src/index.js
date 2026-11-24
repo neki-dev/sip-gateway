@@ -3,6 +3,7 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 const net = require('net');
+const dgram = require('dgram');
 
 /**
  * Create socket stream
@@ -11,26 +12,20 @@ const net = require('net');
  * @param {Object} params
  * @param {number} params.port
  * @param {string} params.host
+ * @param {string} [params.transport='tcp']
  * @param {number} [params.timeout]
  * @param {number} [params.maxListeners]
  * @param {Function} [params.callback]
+ * @param {Function} [params.onError]
  *
- * @returns {net.Socket}
+ * @returns {net.Socket|dgram.Socket}
  */
 function createStream(socket, {
-  host, port, timeout, maxListeners, callback,
+  host, port, transport = 'tcp', timeout, maxListeners, callback, onError,
 }) {
-  const stream = net.connect(port, host);
+  let stream;
 
-  stream.setEncoding('binary');
-  if (timeout !== undefined) {
-    stream.setTimeout(timeout);
-  }
-  if (maxListeners !== undefined) {
-    stream.setMaxListeners(maxListeners);
-  }
-
-  stream.on('data', (data) => {
+  const onData = (data) => {
     if (callback) {
       const result = callback(data, stream);
       if (result === false) {
@@ -39,6 +34,46 @@ function createStream(socket, {
     }
 
     socket.send(data);
+  };
+
+  if (transport === 'udp') {
+    stream = dgram.createSocket(net.isIP(host) === 6 ? 'udp6' : 'udp4');
+
+    // dgram connects asynchronously, so queue data until the socket is ready
+    const queue = [];
+    let connected = false;
+    stream.on('connect', () => {
+      connected = true;
+      while (queue.length > 0) {
+        stream.send(queue.shift());
+      }
+    });
+
+    // Adapt the dgram API to the stream interface used by the gateway
+    stream.write = (data) => (connected ? stream.send(data) : queue.push(data));
+    stream.destroy = () => stream.close();
+    stream.on('message', onData);
+
+    stream.connect(port, host);
+  } else {
+    stream = net.connect(port, host);
+    stream.setEncoding('binary');
+
+    if (timeout !== undefined) {
+      stream.setTimeout(timeout);
+    }
+
+    stream.on('data', onData);
+  }
+
+  if (maxListeners !== undefined) {
+    stream.setMaxListeners(maxListeners);
+  }
+
+  stream.on('error', (err) => {
+    if (onError) {
+      onError(err, stream);
+    }
   });
 
   return stream;
@@ -49,14 +84,17 @@ function createStream(socket, {
  *
  * @param {Buffer|string} data
  *
- * @returns {string}
+ * @returns {string|undefined}
  */
 function parseHost(data) {
   const meta = data.toString().split('\n')[0];
   const target = meta.split(' ')[1];
-  const host = target.split(/[:@]/).pop();
 
-  return host;
+  if (!target) {
+    return undefined;
+  }
+
+  return target.split(/[:@]/).pop();
 }
 
 /**
@@ -80,6 +118,7 @@ function handleProtocols(protocols) {
  * @param {string} [params.hostSIP]
  * @param {number} [params.timeout=60000]
  * @param {number} [params.maxListeners]
+ * @param {string} [params.transport='tcp'] Transport protocol to SIP server (tcp/udp)
  * @param {Function} [params.onListen]
  * @param {Function} [params.onSend]
  * @param {Function} [params.onReceive]
@@ -93,8 +132,13 @@ module.exports = function start({
   port, host,
   portSIP = 5060, hostSIP,
   maxListeners, timeout = 60000, ssl,
+  transport = 'tcp',
   onListen, onSend, onReceive,
 }) {
+  if (transport !== 'tcp' && transport !== 'udp') {
+    throw new TypeError(`Unknown transport: ${transport}`);
+  }
+
   const config = {
     handleProtocols,
   };
@@ -115,12 +159,21 @@ module.exports = function start({
 
     socket.on('message', (data) => {
       if (!stream) {
+        const streamHost = hostSIP || parseHost(data);
+
+        // Ignore messages without a request line (e.g. keep-alives)
+        if (!streamHost) {
+          return;
+        }
+
         stream = createStream(socket, {
-          host: hostSIP || parseHost(data),
+          host: streamHost,
           port: portSIP,
+          transport,
           timeout,
           maxListeners,
           callback: onSend,
+          onError: (err) => ws.emit('streamError', err, stream),
         });
 
         ws.emit('streamCreate', stream);

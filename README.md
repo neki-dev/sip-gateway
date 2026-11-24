@@ -24,6 +24,7 @@ npm i sip-gateway
 | ssl.key | string | - | Path to .key file |
 | timeout | number | 60000 | Connection timeout |
 | maxListeners | number | - | Max listeners |
+| transport | string | tcp | Transport protocol to SIP server (`tcp`/`udp`) |
 | onListen | function | - | Callback for listen event |
 | onSend | function | - | Callback for send event |
 | onReceive | function | - | Callback for receive event |
@@ -35,6 +36,7 @@ npm i sip-gateway
 | disconnect | socket | Socket disconnection |
 | streamCreate | stream | Create stream |
 | streamDestroy | stream | Destroy stream |
+| streamError | error, stream | Stream error |
 | transferData | data, stream | Transfer stream data |
 
 * ### Usage
