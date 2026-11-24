@@ -62,12 +62,12 @@ function parseHost(data) {
 /**
  * Verify SIP protocol
  *
- * @param {string} protocol
+ * @param {Set<string>} protocols
  *
  * @returns {string}
  */
-function handleProtocols(protocol) {
-  return (protocol.indexOf('sip') === -1) ? 'invalid_protocol' : 'sip';
+function handleProtocols(protocols) {
+  return (protocols.has('sip')) ? 'sip' : 'invalid_protocol';
 }
 
 /**
@@ -107,9 +107,9 @@ module.exports = function start({
   } else {
     config.server = http.createServer();
   }
-  config.server.listen(port, host);
+  config.server.listen(port, host, onListen);
 
-  const ws = new WebSocket.Server(config, onListen);
+  const ws = new WebSocket.Server(config);
   ws.on('connection', (socket) => {
     let stream;
 
